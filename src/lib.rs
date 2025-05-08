@@ -5,12 +5,29 @@ use pc_keyboard::{DecodedKey, KeyCode};
 use pluggable_interrupt_os::vga_buffer::{
     is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
 };
-
+use file_system_solution::FileSystem;
+use gc_heap::{CopyingHeap, GenerationalHeap};
+use simple_interp::{Interpreter, InterpreterOutput, ArrayString};
 
 const NUM_WINDOWS: usize = 4;
-const WINDOW_WIDTH: usize = BUFFER_WIDTH / 2;
+const WINDOW_WIDTH: usize = (WIN_REGION_WIDTH - 3) / 2;
 const WINDOW_HEIGHT: usize = BUFFER_HEIGHT / 2;
 const DOC_HEIGHT: usize = WINDOW_HEIGHT * 4;
+const TASK_MANAGER_WIDTH: usize = 10;
+const WIN_REGION_WIDTH: usize = BUFFER_WIDTH - TASK_MANAGER_WIDTH;
+const MAX_OPEN: usize = 16;
+const BLOCK_SIZE: usize = 256;
+const NUM_BLOCKS: usize = 255;
+const MAX_FILE_BLOCKS: usize = 64;
+const MAX_FILE_BYTES: usize = MAX_FILE_BLOCKS * BLOCK_SIZE;
+const MAX_FILES_STORED: usize = 30;
+const MAX_FILENAME_BYTES: usize = 10;
+const MAX_TOKENS: usize = 100; 
+const MAX_LITERAL_CHARS: usize = 15;
+const STACK_DEPTH: usize = 20; 
+const MAX_LOCAL_VARS: usize = 10; 
+const HEAP_SIZE: usize = 256; 
+const MAX_HEAP_BLOCKS: usize = HEAP_SIZE;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Document {
@@ -32,18 +49,89 @@ impl Default for Document {
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
+struct DocumentOutput {
+    window: Document,
+    input_buffer: ArrayString<MAX_TOKENS>,
+}
+
+impl InterpreterOutput for DocumentOutput {
+    fn new(window: Document) -> Self {
+        Self {
+            window,
+            input_buffer: ArrayString::new(),
+        }
+    }
+
+    fn provide_input(&mut self, input: &str) {
+        self.input_buffer.push_str(input);
+    }
+
+    fn print(&mut self, chars: &[u8]) {
+        let output_str = String::from_utf8_lossy(chars);
+        for (i, ch) in output_str.chars().enumerate() {
+            plot(ch, self.window.x + i, self.window.y, ColorCode::new(Color::Black, Color::White));
+        }
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
 pub struct SwimInterface {
     windows: [Document; NUM_WINDOWS],
     active_window: usize,
     prev_cursor_pos: (usize, usize), 
+    fs: FileSystem,
+    selected_file_index: [usize; NUM_WINDOWS],
+    programs: Vec<Interpreter<MAX_TOKENS, MAX_LITERAL_CHARS, STACK_DEPTH, MAX_LOCAL_VARS, WIN_WIDTH, CopyingHeap<HEAP_SIZE, MAX_HEAP_BLOCKS>>>,
 }
 
 impl Default for SwimInterface {
     fn default() -> Self {
+        let mut fs = FileSystem::new();
+        let files = [
+            ("hello", r#"print("Hello, world!")"#),
+            ("nums", r#"print(1)
+print(257)"#),
+            ("average", r#"sum := 0
+count := 0
+averaging := true
+while averaging {
+    num := input("Enter a number:")
+    if (num == "quit") {
+        averaging := false
+    } else {
+        sum := (sum + num)
+        count := (count + 1)
+    }
+}
+print((sum / count))"#),
+            ("pi", r#"sum := 0
+i := 0
+neg := false
+terms := input("Num terms:")
+while (i < terms) {
+    term := (1.0 / ((2.0 * i) + 1.0))
+    if neg {
+        term := -term
+    }
+    sum := (sum + term)
+    neg := not neg
+    i := (i + 1)
+}
+print((4 * sum))"#),
+        ];
+        for (name, content) in &files {
+            let mut file = fs.open_create(name).unwrap();
+            file.write(content.as_bytes()).unwrap();
+            file.close().unwrap();
+        }
         Self {
             windows: [Document::default(); NUM_WINDOWS],
             active_window: 0,
             prev_cursor_pos: (0, 0),
+            fs,
+            selected_file_index: [0; NUM_WINDOWS],
+            programs: Vec::new(),
+
         }
     }
 }
@@ -85,6 +173,30 @@ impl SwimInterface {
                     plot(ch, start_x + col, start_y + row, ColorCode::new(Color::Cyan, Color::Black));
                 }
             }
+        let file_list = self.fs.list_files();
+        let col_width = WIN_WIDTH / 3;
+        let mut row = 1;
+        let mut col = 0;
+
+        for (index, filename) in file_list.iter().enumerate() {
+            let x = start_x + col * col_width;
+            let y = start_y + row;
+
+            let color = if index == self.selected_file_index[i] {
+                ColorCode::new(Color::Black, Color::White)
+            } else {
+                ColorCode::new(Color::Cyan, Color::Black)
+            };
+            for (j, ch) in filename.chars().enumerate() {
+                plot(ch, x + j, y, color);
+            }
+
+            row += 1;
+            if row >= 10 {
+                row = 1;
+                col += 1;
+            }
+
         }
     }
 
@@ -122,6 +234,39 @@ impl SwimInterface {
             KeyCode::ArrowRight => self.move_cursor(1, 0),
             KeyCode::ArrowUp => self.move_cursor(0, -1),
             KeyCode::ArrowDown => self.move_cursor(0, 1),
+            KeyCode::ArrowLeft => {
+                let file_count = self.fs.list_files().len();
+                if file_count > 0 {
+                    self.selected_file_index[self.active_window] =
+                        (self.selected_file_index[self.active_window] + file_count - 1) % file_count;
+                }
+            }
+            KeyCode::ArrowRight => {
+                let file_count = self.fs.list_files().len();
+                if file_count > 0 {
+                    self.selected_file_index[self.active_window] =
+                        (self.selected_file_index[self.active_window] + 1) % file_count;
+                }
+            }
+            KeyCode::Char('r') => {
+                let selected_file = &self.fs.list_files()[self.selected_file_index[self.active_window]];
+    
+                let program_text = self.fs.read_file(selected_file).unwrap();
+                let mut interpreter = Interpreter::new(program_text);
+    
+                let doc_output = DocumentOutput {
+                    window: &mut self.windows[self.active_window],
+                    input_buffer: ArrayString::new(),
+
+                };
+    
+                interpreter.tick(&mut doc_output);
+    
+                self.programs.push(interpreter);
+            },
+            KeyCode::F6 => {
+                self.programs.clear();
+            },
             _ => {}
         }
     }
@@ -195,4 +340,5 @@ impl SwimInterface {
         let start_y = (index / 2) * WINDOW_HEIGHT;
         (start_x, start_y)
     }
+}
 }

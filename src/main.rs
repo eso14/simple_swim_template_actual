@@ -31,6 +31,20 @@ fn cpu_loop() -> ! {
                 kernel.key(k);
             }
         }
+        if let Some(program) = self.programs.first_mut() {
+            let doc_output = DocumentOutput {
+                window: &mut self.windows[self.active_window],
+            };
+    
+            match program.tick(&mut doc_output) {
+                InterpreterOutput::AwaitInput => {
+                    self.wait_for_input();
+                },
+                _ => {
+                    self.programs.remove(0);
+                },
+            }
+        }
     }
 }
 
