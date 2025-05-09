@@ -64,7 +64,7 @@ pub struct SwimInterface {
 
 impl Default for SwimInterface {
     fn default() -> Self {
-        let disk = RamDisk::<NUM_BLOCKS, BLOCK_SIZE>::new();
+        let disk = RamDisk::<BLOCK_SIZE, NUM_BLOCKS>::new();
         let mut fs = FileSystem::new(disk);
         let files = [
             ("hello", r#"print("Hello, world!")"#),
@@ -99,7 +99,7 @@ while (i < terms) {
 print((4 * sum))"#),
         ];
         for (name, content) in &files {
-            let mut fd = fs.open_create(name).unwrap();
+            let fd = fs.open_create(name).unwrap();
             fs.write(fd, content.as_bytes()).unwrap();
             fs.close(fd).unwrap();
         }
