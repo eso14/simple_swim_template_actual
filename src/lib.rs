@@ -5,8 +5,8 @@ use pc_keyboard::{DecodedKey, KeyCode};
 use pluggable_interrupt_os::vga_buffer::{
     is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
 };
-use file_system_solution::FileSystem;
-use gc_heap::{CopyingHeap, GenerationalHeap};
+use file_system_template::FileSystem;
+//use gc_heap_template::{CopyingHeap, GenerationalHeap};
 use simple_interp::{Interpreter, InterpreterOutput, ArrayString};
 
 const NUM_WINDOWS: usize = 4;
@@ -48,7 +48,7 @@ impl Default for Document {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+/*#[derive(Copy, Clone, Eq, PartialEq)]
 struct DocumentOutput {
     window: Document,
     input_buffer: ArrayString<MAX_TOKENS>,
@@ -73,6 +73,7 @@ impl InterpreterOutput for DocumentOutput {
         }
     }
 }
+    */
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct SwimInterface {
@@ -81,7 +82,7 @@ pub struct SwimInterface {
     prev_cursor_pos: (usize, usize), 
     fs: FileSystem,
     selected_file_index: [usize; NUM_WINDOWS],
-    programs: Vec<Interpreter<MAX_TOKENS, MAX_LITERAL_CHARS, STACK_DEPTH, MAX_LOCAL_VARS, WIN_WIDTH, CopyingHeap<HEAP_SIZE, MAX_HEAP_BLOCKS>>>,
+    //programs: Vec<Interpreter<MAX_TOKENS, MAX_LITERAL_CHARS, STACK_DEPTH, MAX_LOCAL_VARS, WIN_WIDTH, CopyingHeap<HEAP_SIZE, MAX_HEAP_BLOCKS>>>,
 }
 
 impl Default for SwimInterface {
@@ -130,7 +131,7 @@ print((4 * sum))"#),
             prev_cursor_pos: (0, 0),
             fs,
             selected_file_index: [0; NUM_WINDOWS],
-            programs: Vec::new(),
+            //programs: Vec::new(),
 
         }
     }
@@ -235,6 +236,8 @@ impl SwimInterface {
             KeyCode::ArrowUp => self.move_cursor(0, -1),
             KeyCode::ArrowDown => self.move_cursor(0, 1),
             KeyCode::ArrowLeft => {
+
+                
                 let file_count = self.fs.list_files().len();
                 if file_count > 0 {
                     self.selected_file_index[self.active_window] =
@@ -247,8 +250,8 @@ impl SwimInterface {
                     self.selected_file_index[self.active_window] =
                         (self.selected_file_index[self.active_window] + 1) % file_count;
                 }
-            }
-            KeyCode::Char('r') => {
+            },
+            /*KeyCode::Char('r') => {
                 let selected_file = &self.fs.list_files()[self.selected_file_index[self.active_window]];
     
                 let program_text = self.fs.read_file(selected_file).unwrap();
@@ -266,7 +269,7 @@ impl SwimInterface {
             },
             KeyCode::F6 => {
                 self.programs.clear();
-            },
+            },*/
             _ => {}
         }
     }
