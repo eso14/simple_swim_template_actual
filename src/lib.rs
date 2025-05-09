@@ -1,6 +1,8 @@
 #![no_std]
 
 
+use core::intrinsics::fdiv_algebraic;
+
 use pc_keyboard::{DecodedKey, KeyCode};
 use pluggable_interrupt_os::vga_buffer::{
     is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
@@ -200,6 +202,7 @@ impl SwimInterface {
 
         }
     }
+}
 
     fn draw_cursor(&mut self) {
         let (start_x, start_y) = self.window_position(self.active_window);
@@ -231,25 +234,35 @@ impl SwimInterface {
             KeyCode::F3 => self.active_window = 2,
             KeyCode::F4 => self.active_window = 3,
             KeyCode::Backspace => self.backspace_key(),
-            KeyCode::ArrowLeft => self.move_cursor(-1, 0),
-            KeyCode::ArrowRight => self.move_cursor(1, 0),
+            //KeyCode::ArrowLeft => self.move_cursor(-1, 0),
+            //KeyCode::ArrowRight => self.move_cursor(1, 0),
             KeyCode::ArrowUp => self.move_cursor(0, -1),
             KeyCode::ArrowDown => self.move_cursor(0, 1),
             KeyCode::ArrowLeft => {
-
-                
-                let file_count = self.fs.list_files().len();
+                if self.cursor_y[self.active_window] == 0{
+                    let file_count = self.fs.list_files().len();
                 if file_count > 0 {
                     self.selected_file_index[self.active_window] =
                         (self.selected_file_index[self.active_window] + file_count - 1) % file_count;
                 }
+                }else{
+                    self.move_cursor(-1,0);
+                }
+                
+                
             }
             KeyCode::ArrowRight => {
-                let file_count = self.fs.list_files().len();
+                if self.cursor_y[self.active_window]==0{
+                    let file_count = self.fs.list_files().len();
                 if file_count > 0 {
                     self.selected_file_index[self.active_window] =
                         (self.selected_file_index[self.active_window] + 1) % file_count;
                 }
+                }else{
+                    self.move_cursor(1,0);
+                    
+                }
+                
             },
             /*KeyCode::Char('r') => {
                 let selected_file = &self.fs.list_files()[self.selected_file_index[self.active_window]];
@@ -282,6 +295,7 @@ impl SwimInterface {
             let doc = &mut self.windows[self.active_window];
             doc.letters[doc.row][doc.col] = key;
             self.move_cursor(1, 0); 
+           
         }
     }
 
@@ -344,4 +358,4 @@ impl SwimInterface {
         (start_x, start_y)
     }
 }
-}
+
