@@ -167,7 +167,7 @@ impl SwimInterface {
             let filename_str = core::str::from_utf8(name_bytes).unwrap();
             
             for (j, ch) in filename_str.chars().enumerate() {
-                plot(ch, x + k + j*11, y, color);
+                plot(ch, x + k + j, y, color);
             }
         }
 
