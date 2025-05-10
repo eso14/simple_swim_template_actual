@@ -2,7 +2,7 @@
 //#![feature(core_intrinsics)]
 
 
-//use core::intrinsics::fdiv_algebraic;
+
 
 use pc_keyboard::{DecodedKey, KeyCode};
 use pluggable_interrupt_os::vga_buffer::{
@@ -10,7 +10,7 @@ use pluggable_interrupt_os::vga_buffer::{
 };
 use file_system_solution::FileSystem;
 use ramdisk::RamDisk;
-//use simple_interp::{Interpreter, InterpreterOutput, ArrayString};
+
 
 const NUM_WINDOWS: usize = 4;
 const WINDOW_WIDTH: usize = (WIN_REGION_WIDTH - 3) / 2;
@@ -25,12 +25,7 @@ const MAX_FILE_BLOCKS: usize = 64;
 const MAX_FILE_BYTES: usize = MAX_FILE_BLOCKS * BLOCK_SIZE;
 const MAX_FILES_STORED: usize = 30;
 const MAX_FILENAME_BYTES: usize = 10;
-const MAX_TOKENS: usize = 100; 
-const MAX_LITERAL_CHARS: usize = 15;
-const STACK_DEPTH: usize = 20; 
-const MAX_LOCAL_VARS: usize = 10; 
-const HEAP_SIZE: usize = 256; 
-const MAX_HEAP_BLOCKS: usize = HEAP_SIZE;
+
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct Document {
@@ -122,7 +117,7 @@ impl SwimInterface {
         self.draw_cursor(); 
     }
 
-    fn draw_windows(&self) {
+    fn draw_windows(&mut self) {
         for i in 0..NUM_WINDOWS {
             let (start_x, start_y) = self.window_position(i);
             let is_active = i == self.active_window;
