@@ -1,7 +1,4 @@
 #![no_std]
-//#![feature(core_intrinsics)]
-
-
 
 
 use pc_keyboard::{DecodedKey, KeyCode};
@@ -13,11 +10,11 @@ use ramdisk::RamDisk;
 
 
 const NUM_WINDOWS: usize = 4;
-const WINDOW_WIDTH: usize = (WIN_REGION_WIDTH - 3) / 2;
 const WINDOW_HEIGHT: usize = BUFFER_HEIGHT / 2;
 const DOC_HEIGHT: usize = WINDOW_HEIGHT * 4;
 const TASK_MANAGER_WIDTH: usize = 10;
 const WIN_REGION_WIDTH: usize = BUFFER_WIDTH - TASK_MANAGER_WIDTH;
+const WINDOW_WIDTH: usize = (WIN_REGION_WIDTH - 3) / 2;
 const MAX_OPEN: usize = 16;
 const BLOCK_SIZE: usize = 256;
 const NUM_BLOCKS: usize = 255;
@@ -134,17 +131,43 @@ impl SwimInterface {
             }
 
             
-            let header_x = start_x + (WINDOW_WIDTH / 2) -1 ;
+            /*let header_x = start_x + (WINDOW_WIDTH / 2) -1 ;
             let header_text = ['1', '2', '3', '4'][i];
             plot('F', header_x, start_y, ColorCode::new(Color::White, Color::Black));
             plot(header_text, header_x + 1, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('(', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('e', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot(')', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('d', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('i', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('t', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('_', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('(', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('r', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot(')', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('u', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
+            plot('n', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black)); */
+           
+            let label = match i {
+                0 => "F1 (e)dit (r)un",
+                1 => "F2 (e)dit (r)un",
+                2 => "F3 (e)dit (r)un",
+                _ => "F4 (e)dit (r)un",
+            };
+            for (j, ch) in label.chars().enumerate() {
+                plot(ch, start_x + j + 1, start_y, ColorCode::new(Color::White, Color::Black));
+            }
 
             
             let doc = &self.windows[i];
             for row in 0..WINDOW_HEIGHT {
                 for col in 0..WINDOW_WIDTH {
-                    let ch = doc.letters[row + doc.scroll][col];
-                    plot(ch, start_x + col, start_y + row, ColorCode::new(Color::Cyan, Color::Black));
+                    let globalrow = row + doc.scroll;
+                    if globalrow < DOC_HEIGHT{
+                        let ch = doc.letters[row + doc.scroll][col];
+                        plot(ch, start_x + col, start_y + row, ColorCode::new(Color::Cyan, Color::Black));
+                    }
+                   
                 }
             }
         let file_list = self.fs.list_directory();
@@ -155,20 +178,21 @@ impl SwimInterface {
         for (index, (_, file_names)) in file_list.iter().enumerate() {
             let x = start_x + col * col_width;
             let y = start_y + row;
-
-            let color = if index == self.selected_file_index[i] {
-                ColorCode::new(Color::Black, Color::White)
-            } else {
-                ColorCode::new(Color::Cyan, Color::Black)
-            };
-            
             for (k, name_bytes) in file_names.iter().enumerate() {
             
-            let filename_str = core::str::from_utf8(name_bytes).unwrap();
+                let filename_str = core::str::from_utf8(name_bytes)
+                .unwrap();
+
+                let color = if index == self.selected_file_index[i] {
+                    ColorCode::new(Color::Black, Color::White)
+                } else {
+                    ColorCode::new(Color::Cyan, Color::Black)
+                };
             
             for (j, ch) in filename_str.chars().enumerate() {
                 plot(ch, x + k + j, y, color);
             }
+            
         }
 
             row += 1;
