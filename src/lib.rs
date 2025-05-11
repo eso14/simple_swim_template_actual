@@ -130,23 +130,6 @@ impl SwimInterface {
                 plot('.', start_x + WINDOW_WIDTH - 1, y, ColorCode::new(border_color, Color::Black)); 
             }
 
-            
-            /*let header_x = start_x + (WINDOW_WIDTH / 2) -1 ;
-            let header_text = ['1', '2', '3', '4'][i];
-            plot('F', header_x, start_y, ColorCode::new(Color::White, Color::Black));
-            plot(header_text, header_x + 1, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('(', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('e', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot(')', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('d', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('i', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('t', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('_', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('(', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('r', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot(')', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('u', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black));
-            plot('n', header_x + 2, start_y, ColorCode::new(Color::White, Color::Black)); */
            
             let label = match i {
                 0 => "F1 (e)dit (r)un",
