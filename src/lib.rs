@@ -2,9 +2,9 @@
 
 
 use pc_keyboard::{DecodedKey, KeyCode};
-use pluggable_interrupt_os::vga_buffer::{
+use pluggable_interrupt_os::{println, vga_buffer::{
     is_drawable, plot, Color, ColorCode, BUFFER_HEIGHT, BUFFER_WIDTH,
-};
+}};
 use file_system_solution::FileSystem;
 use ramdisk::RamDisk;
 
@@ -137,52 +137,40 @@ impl SwimInterface {
                 2 => "F3 (e)dit (r)un",
                 _ => "F4 (e)dit (r)un",
             };
-            for (j, ch) in label.chars().enumerate() {
+             for (j, ch) in label.chars().enumerate() {
                 plot(ch, start_x + j + 1, start_y, ColorCode::new(Color::White, Color::Black));
-            }
-
-            
-            let doc = &self.windows[i];
-            for row in 0..WINDOW_HEIGHT {
-                for col in 0..WINDOW_WIDTH {
-                    let globalrow = row + doc.scroll;
-                    if globalrow < DOC_HEIGHT{
-                        let ch = doc.letters[row + doc.scroll][col];
-                        plot(ch, start_x + col, start_y + row, ColorCode::new(Color::Cyan, Color::Black));
-                    }
+             }
+            // let doc = &self.windows[i];
+            // for row in 0..WINDOW_HEIGHT {
+            //     for col in 0..WINDOW_WIDTH {
+            //         let globalrow = row + doc.scroll;
+            //         if globalrow < DOC_HEIGHT{
+            //             let ch = doc.letters[row + doc.scroll][col];
+            //             plot(ch, start_x + col, start_y + row, ColorCode::new(Color::Cyan, Color::Black));
+            //         }
                    
-                }
-            }
-        let file_list = self.fs.list_directory();
+            //     }
+            // }
+        let (size, file_list) = self.fs.list_directory().unwrap();
         let col_width = WINDOW_WIDTH / 3;
-        let mut row = 1;
-        let mut col = 0;
+    
+        let x = start_x;
+        let y = start_y + 1;
 
-        for (index, (_, file_names)) in file_list.iter().enumerate() {
-            let x = start_x + col * col_width;
-            let y = start_y + row;
-            for (k, name_bytes) in file_names.iter().enumerate() {
-            
-                let filename_str = core::str::from_utf8(name_bytes)
-                .unwrap();
-
-                let color = if index == self.selected_file_index[i] {
+        for l in 0..size {
+            for j in 0..MAX_FILENAME_BYTES{
+                let color = if l == self.selected_file_index[i] {
                     ColorCode::new(Color::Black, Color::White)
                 } else {
                     ColorCode::new(Color::Cyan, Color::Black)
                 };
-            
-            for (j, ch) in filename_str.chars().enumerate() {
-                plot(ch, x + k + j, y, color);
-            }
-            
-        }
+                let ch = file_list[l][j] as char;
+                plot(ch, x +(l % 3 * col_width) + j, y + l /3, color);
+           
 
-            row += 1;
-            if row >= 10 {
-                row = 1;
-                col += 1;
+
             }
+            
 
         }
     }
@@ -218,30 +206,30 @@ impl SwimInterface {
             KeyCode::F3 => self.active_window = 2,
             KeyCode::F4 => self.active_window = 3,
             KeyCode::Backspace => self.backspace_key(),
-     
             KeyCode::ArrowUp => self.move_cursor(0, -1),
             KeyCode::ArrowDown => self.move_cursor(0, 1),
             KeyCode::ArrowLeft => {
                 let doc = &self.windows[self.active_window];
-                if doc.row == 0{
-                    let file_count = self.fs.list_directory().iter().len();
+                let (file_count, _) = self.fs.list_directory().unwrap();
                 if file_count > 0 {
+                    if self.selected_file_index[self.active_window]>0{
                     self.selected_file_index[self.active_window] =
-                        (self.selected_file_index[self.active_window] + file_count - 1) % file_count;
+                        (self.selected_file_index[self.active_window] - 1) % file_count;
+                    }
                 }
-                }else{
+                else{
                     self.move_cursor(-1,0);
+                    
                 }
             }
             KeyCode::ArrowRight => {
                 let doc = &self.windows[self.active_window];
-                if doc.row == 0{
-                    let file_count = self.fs.list_directory().iter().len();
+                let (file_count, _) = self.fs.list_directory().unwrap();
                 if file_count > 0 {
                     self.selected_file_index[self.active_window] =
                         (self.selected_file_index[self.active_window] + 1) % file_count;
                 }
-                }else{
+                else{
                     self.move_cursor(1,0);
                     
                 }
